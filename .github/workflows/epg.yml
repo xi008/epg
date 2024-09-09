@@ -2,8 +2,8 @@ name: EPG
 
 on:
   schedule:
-    - cron: '10 16,22,4,10 * * *'  # 从UTC时间16:10（北京时间0:10）开始，每6小时执行一次
-    - cron: '0 17 * * *'  # 每天UTC时间17:00执行（北京时间1:00）
+    - cron: '10 16,22,2,10 * * *'  # Runs every 6 hours starting from UTC 16:10 (Beijing time 00:10)
+    - cron: '0 17 * * *'  # Runs at UTC 17:00 every day (Beijing time 01:00)
   workflow_dispatch:
 
 jobs:
@@ -29,10 +29,10 @@ jobs:
             filename=$(echo $file | cut -d ' ' -f 1)
             url=$(echo $file | cut -d ' ' -f 2)
             echo "Downloading $filename from $url"
-            wget -O "$filename" "$url" --retry-connrefused --waitretry=5 --timeout=30 || echo "$filename 下载失败，跳过"
+            wget -O "$filename" "$url" --retry-connrefused --waitretry=5 --timeout=30 || echo "$filename download failed, skipping"
           done
           
-          # 将文件名列表写入 GITHUB_ENV，供后续步骤使用
+          # Write the list of file names to GITHUB_ENV for later steps to use
           for file in "${files[@]}"; do
             filename=$(echo $file | cut -d ' ' -f 1)
             echo "FILENAME_$filename=$filename" >> $GITHUB_ENV
@@ -53,10 +53,10 @@ jobs:
           if [ -n "$files_to_add" ]; then
             git add $files_to_add
             now_time=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
-            git commit -m "更新时间：$now_time"
-            git push origin main || echo "推送到GitHub失败"
+            git commit -m "Update time: $now_time"
+            git push origin main || echo "Failed to push to GitHub"
           else
-            echo "没有文件可提交"
+            echo "No files to commit"
           fi
 
       - name: Get current repository name
