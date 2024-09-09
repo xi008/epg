@@ -1,0 +1,80 @@
+name: EPG
+
+on:
+  schedule:
+    - cron: '10 16,22,4,10 * * *'  # 从UTC时间16:10（北京时间0:10）开始，每6小时执行一次
+    - cron: '0 17 * * *'  # 每天UTC时间17:00执行（北京时间1:00）
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Define file list and download URLs
+        run: |
+          files=(
+            "112114.xml https://epg.112114.xyz/pp.xml"
+            "112114.xml.gz https://epg.112114.xyz/pp.xml.gz"
+            "51zmt.xml http://epg.51zmt.top:8000/e.xml"
+            "51zmt.xml.gz http://epg.51zmt.top:8000/e.xml.gz"
+            "epgpw_cn.xml https://epg.pw/xmltv/epg_CN.xml"
+            "epgpw_cn.xml.gz https://epg.pw/xmltv/epg_CN.xml.gz"
+          )
+
+          for file in "${files[@]}"; do
+            filename=$(echo $file | cut -d ' ' -f 1)
+            url=$(echo $file | cut -d ' ' -f 2)
+            echo "Downloading $filename from $url"
+            wget -O "$filename" "$url" --retry-connrefused --waitretry=5 --timeout=30 || echo "$filename 下载失败，跳过"
+          done
+          
+          # 将文件名列表写入 GITHUB_ENV，供后续步骤使用
+          for file in "${files[@]}"; do
+            filename=$(echo $file | cut -d ' ' -f 1)
+            echo "FILENAME_$filename=$filename" >> $GITHUB_ENV
+          done
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+
+          files_to_add=""
+          for var in $(env | grep 'FILENAME_' | cut -d '=' -f 2); do
+            if [ -f "$var" ]; then
+              files_to_add="$files_to_add $var"
+            fi
+          done
+          
+          if [ -n "$files_to_add" ]; then
+            git add $files_to_add
+            now_time=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
+            git commit -m "更新时间：$now_time"
+            git push origin main || echo "推送到GitHub失败"
+          else
+            echo "没有文件可提交"
+          fi
+
+      - name: Get current repository name
+        id: info
+        uses: actions/github-script@v3.1
+        with:
+          github-token: ${{secrets.GH_TOKEN}}
+          result-encoding: string
+          script: |
+            return context.repo.repo;
+            
+      - name: Mirror the repo to Gitee
+        uses: Yikun/hub-mirror-action@master
+        with:
+          src: github/TakcC
+          dst: gitee/takcheung
+          dst_key: ${{ secrets.GITEE_PRIVATE_KEY }}
+          dst_token: ${{ secrets.GITEE_TOKEN }}
+          static_list: '${{ steps.info.outputs.result }}'
+          account_type: user
+          force_update: true
