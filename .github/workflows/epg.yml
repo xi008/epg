@@ -2,7 +2,7 @@ name: EPG
 
 on:
   schedule:
-    - cron: '0 6,18 * * *'  # 早上6点下午6点运行
+    - cron: '0 6,18 * * *'  # 从UTC时间0:6（北京时间0:6）开始
   workflow_dispatch:
 
 jobs:
@@ -28,10 +28,10 @@ jobs:
             filename=$(echo $file | cut -d ' ' -f 1)
             url=$(echo $file | cut -d ' ' -f 2)
             echo "Downloading $filename from $url"
-            wget -O "$filename" "$url" --retry-connrefused --waitretry=5 --timeout=30 || echo "$filename download failed, skipping"
+            wget -O "$filename" "$url" --retry-connrefused --waitretry=5 --timeout=30 || echo "$filename 下载失败，跳过"
           done
           
-          # Write the list of file names to GITHUB_ENV for later steps to use
+          # 将文件名列表写入 GITHUB_ENV，供后续步骤使用
           for file in "${files[@]}"; do
             filename=$(echo $file | cut -d ' ' -f 1)
             echo "FILENAME_$filename=$filename" >> $GITHUB_ENV
@@ -52,28 +52,8 @@ jobs:
           if [ -n "$files_to_add" ]; then
             git add $files_to_add
             now_time=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
-            git commit -m "Update time: $now_time"
-            git push origin main || echo "Failed to push to GitHub"
+            git commit -m "更新时间：$now_time"
+            git push origin main || echo "推送到GitHub失败"
           else
-            echo "No files to commit"
+            echo "没有文件可提交"
           fi
-
-      - name: Get current repository name
-        id: info
-        uses: actions/github-script@v3.1
-        with:
-          github-token: ${{secrets.GH_TOKEN}}
-          result-encoding: string
-          script: |
-            return context.repo.repo;
-            
-      #- name: Mirror the repo to Gitee
-       # uses: Yikun/hub-mirror-action@master
-       # with:
-         # src: github/TakcC
-         # dst: gitee/takcheung
-         # dst_key: ${{ secrets.GITEE_PRIVATE_KEY }}
-         # dst_token: ${{ secrets.GITEE_TOKEN }}
-         # static_list: '${{ steps.info.outputs.result }}'
-          account_type: user
-          force_update: true
