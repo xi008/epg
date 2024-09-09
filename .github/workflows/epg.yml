@@ -2,7 +2,7 @@ name: EPG
 
 on:
   schedule:
-    - cron: '10 16,22,2,10 * * *'  # Runs every 6 小时之前 starting from UTC 16:10 (Beijing time 00:10)
+    - cron: '0 6,18 * * *'  # 早上6点下午6点运行
   workflow_dispatch:
 
 jobs:
