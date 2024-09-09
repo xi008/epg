@@ -2,8 +2,7 @@ name: EPG
 
 on:
   schedule:
-    - cron: '10 16,22,2,10 * * *'  # Runs every 6 hours starting from UTC 16:10 (Beijing time 00:10)
-    - cron: '0 17 * * *'  # Runs at UTC 17:00 every day (Beijing time 01:00)
+    - cron: '10 16,22,2,10 * * *'  # Runs every 6 小时之前 starting from UTC 16:10 (Beijing time 00:10)
   workflow_dispatch:
 
 jobs:
@@ -68,13 +67,13 @@ jobs:
           script: |
             return context.repo.repo;
             
-      - name: Mirror the repo to Gitee
-        uses: Yikun/hub-mirror-action@master
-        with:
-          src: github/TakcC
-          dst: gitee/takcheung
-          dst_key: ${{ secrets.GITEE_PRIVATE_KEY }}
-          dst_token: ${{ secrets.GITEE_TOKEN }}
-          static_list: '${{ steps.info.outputs.result }}'
+      #- name: Mirror the repo to Gitee
+       # uses: Yikun/hub-mirror-action@master
+       # with:
+         # src: github/TakcC
+         # dst: gitee/takcheung
+         # dst_key: ${{ secrets.GITEE_PRIVATE_KEY }}
+         # dst_token: ${{ secrets.GITEE_TOKEN }}
+         # static_list: '${{ steps.info.outputs.result }}'
           account_type: user
           force_update: true
